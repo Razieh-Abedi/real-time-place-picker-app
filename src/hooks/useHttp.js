@@ -27,15 +27,21 @@ export function useHttp(initialData) {
             requestMethod === "DELETE" ||
             requestMethod === "POST")
         ) {
-          options.body = JSON.stringify(requestPayload);
+          options.body = JSON.stringify({ places: requestPayload });
         }
         const response = await fetch(requestUrl, options);
         const result = await response.json();
         if (!response.ok) {
           throw new Error(requestErrorMsg);
         }
-        setRequestData(result.places);
-        return result.places;
+        let data;
+        if (requestMethod === "GET") {
+          data = result.places;
+        } else if (requestMethod === "PUT") {
+          data = result.requestPayload;
+        }
+        setRequestData(data);
+        return data;
       } catch (error) {
         setRequestError({
           message: requestErrorMsg || "The request was not fulfilled.",

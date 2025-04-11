@@ -14,27 +14,37 @@ function App() {
   const {
     isRequestLoading: isLoading,
     requestError: fetchingError,
-    requestData: userPlaces,
+    // requestData: userPlaces,
     httpRequest: fetchData,
   } = useHttp([]);
 
   const {
     requestError: errorUpdatingPlaces,
     setRequestError: setErrorUpdatingPlaces,
-    setRequestData: setUserPlaces,
+    // setRequestData: setUserPlaces,
     httpRequest: updateData,
   } = useHttp([]);
 
   const [modalIsOpen, setModalIsOpen] = useState(false);
+  const [userPlaces, setUserPlaces] = useState();
 
   useEffect(() => {
-    fetchData(
-      "http://localhost:3000/user-places",
-      "GET",
-      null,
-      "Failed to fetch user places."
-    );
-  }, [fetchData]);
+    const getUserPlaces = async () => {
+      try {
+        const data = await fetchData(
+          "http://localhost:3000/user-places",
+          "GET",
+          null,
+          "Failed to fetch user places."
+        );
+        setUserPlaces(data);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    getUserPlaces();
+  }, []);
 
   function handleStartRemovePlace(place) {
     setModalIsOpen(true);
@@ -45,42 +55,23 @@ function App() {
     setModalIsOpen(false);
   }
 
-  // async function handleSelectPlace(selectedPlace) {
-  //   setUserPlaces((prevPickedPlaces) => {
-  //     if (!prevPickedPlaces) {
-  //       prevPickedPlaces = [];
-  //     }
-  //     if (prevPickedPlaces.some((place) => place.id === selectedPlace.id)) {
-  //       return prevPickedPlaces;
-  //     }
-  //     return [selectedPlace, ...prevPickedPlaces];
-  //   });
-
-  //   await updateData(
-  //     "http://localhost:3000/user-places",
-  //     "PUT",
-  //     [selectedPlace, ...userPlaces],
-  //     "Failed to update user places."
-  //   );
-  // }
-
-  async function handleSelectPlace(selsectedPlace) {
+  async function handleSelectPlace(selectedPlace) {
     setUserPlaces((prevPickedPlaces) => {
-      const updatedPlaces = !prevPickedPlaces
-        ? [selectedPlace]
-        : prevPickedPlaces.some((place) => place.id === selectedPlace.id)
-        ? prevPickedPlaces
-        : [selectedPlace, ...prevPickedPlaces];
-
-      updateData(
-        "http://localhost:3000/user-places",
-        "PUT",
-        updatedPlaces,
-        "Failed to update user places."
-      );
-
-      return updatedPlaces;
+      if (!prevPickedPlaces) {
+        prevPickedPlaces = [];
+      }
+      if (prevPickedPlaces.some((place) => place.id === selectedPlace.id)) {
+        return prevPickedPlaces;
+      }
+      return [selectedPlace, ...prevPickedPlaces];
     });
+
+    updateData(
+      "http://localhost:3000/user-places",
+      "PUT",
+      [selectedPlace, ...userPlaces],
+      "Failed to update user places."
+    );
   }
 
   function handleError() {

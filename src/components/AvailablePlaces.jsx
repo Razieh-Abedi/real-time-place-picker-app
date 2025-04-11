@@ -3,42 +3,47 @@ import { useState, useEffect } from "react";
 import Places from "./Places.jsx";
 import ErrorPage from "./ErrorPage.jsx";
 import { sortPlacesByDistance } from "../loc.js";
-import { fetchAvailablePlaces } from "../http.js";
-import { useData } from "../hooks/useData.js";
+import { useHttp } from "../hooks/useHttp.js";
 
 export default function AvailablePlaces({ onSelectPlace }) {
-  const [availablePlaces, setAvailablePlaces] = useState([]);
-  const [FetchingError, setFetchingError] = useState();
-  const [isLoading, setIsLoading] = useState(false);
+  
+  const {
+    isRequestLoading: isLoading,
+    requestError: fetchingError,
+    requestData: availablePlaces,
+    setRequestData: setAvailablePlaces,
+    httpRequest,
+  } = useHttp([]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      try {
-        const places = await fetchAvailablePlaces();
-        navigator.geolocation.getCurrentPosition((position) => {
-          const sortedPlaces = sortPlacesByDistance(
-            places,
-            position.coords.latitude,
-            position.coords.longitude
-          );
-          setAvailablePlaces(sortedPlaces);
-          setIsLoading(false);
-        });
-      } catch (error) {
-        setFetchingError({
-          message:
-            error.message || "Something went wrong. Try again in a few seconds",
-        });
-        setIsLoading(false);
-      }
+    const fetchPlaces = async () => {
+      const places = await httpRequest(
+        "http://localhost:3000/places", // replace with your real API
+        "GET",
+        null,
+        "Failed to fetch available places."
+      );
+
+      if (!places) return;
+
+      navigator.geolocation.getCurrentPosition((position) => {
+        const sortedPlaces = sortPlacesByDistance(
+          places,
+          position.coords.latitude,
+          position.coords.longitude
+        );
+        setAvailablePlaces(sortedPlaces);
+      });
     };
-    fetchData();
+
+    fetchPlaces();
   }, []);
 
-  if (FetchingError) {
+
+
+  if (fetchingError) {
     return (
-      <ErrorPage title="An error occurred" message={FetchingError.message} />
+      <ErrorPage title="An error occurred" message={fetchingError.message} />
     );
   }
 
