@@ -6,34 +6,35 @@ import DeleteConfirmation from "./components/DeleteConfirmation.jsx";
 import logoImg from "./assets/logo.png";
 import AvailablePlaces from "./components/AvailablePlaces.jsx";
 import ErrorPage from "./components/ErrorPage.jsx";
-import { updateUserPlaces, fetchUserPlaces } from "./http.js";
-import { useData } from "./hooks/useData.js";
+import { useHttp } from "./hooks/useHttp.js";
 
 function App() {
   const selectedPlace = useRef();
+
   const {
-    isLoading,
+    isRequestLoading: isLoading,
     requestError: fetchingError,
-    responseData: userPlaces,
-  } = useData(
-    "http://localhost:3000/user-places",
-    "GET",
-    null,
-    "Failed to fetch user places",
-    []
-  );
+    requestData: userPlaces,
+    httpRequest: fetchData,
+  } = useHttp([]);
 
-  // const [userPlaces, setUserPlaces] = useState([]);
-  const [errorUpdatingPlaces, setErrorUpdatingPlaces] = useState();
+  const {
+    requestError: errorUpdatingPlaces,
+    setRequestError: setErrorUpdatingPlaces,
+    setRequestData: setUserPlaces,
+    httpRequest: updateData,
+  } = useHttp([]);
+
   const [modalIsOpen, setModalIsOpen] = useState(false);
-  // const [FetchingError, setFetchingError] = useState();
-  // const [isLoading, setIsLoading] = useState(false);
 
-  // useEffect(() => {
-  //   if (responseData) {
-  //     setUserPlaces(responseData);
-  //   }
-  // }, [responseData]);
+  useEffect(() => {
+    fetchData(
+      "http://localhost:3000/user-places",
+      "GET",
+      null,
+      "Failed to fetch user places."
+    );
+  }, [fetchData]);
 
   function handleStartRemovePlace(place) {
     setModalIsOpen(true);
@@ -44,72 +45,65 @@ function App() {
     setModalIsOpen(false);
   }
 
-  // useEffect(() => {
-  //   async function loadPlaces() {
-  //     setIsLoading(true);
-  //     try {
-  //       const places = await fetchUserPlaces();
-  //       setUserPlaces(places);
-  //     } catch (error) {
-  //       setFetchingError({
-  //         message: error.message || "Failed to fetch user places",
-  //       });
+  // async function handleSelectPlace(selectedPlace) {
+  //   setUserPlaces((prevPickedPlaces) => {
+  //     if (!prevPickedPlaces) {
+  //       prevPickedPlaces = [];
   //     }
-  //     setIsLoading(false);
-  //   }
-  //   loadPlaces();
-  // }, []);
+  //     if (prevPickedPlaces.some((place) => place.id === selectedPlace.id)) {
+  //       return prevPickedPlaces;
+  //     }
+  //     return [selectedPlace, ...prevPickedPlaces];
+  //   });
 
-  async function handleSelectPlace(selectedPlace) {
+  //   await updateData(
+  //     "http://localhost:3000/user-places",
+  //     "PUT",
+  //     [selectedPlace, ...userPlaces],
+  //     "Failed to update user places."
+  //   );
+  // }
+
+  async function handleSelectPlace(selsectedPlace) {
     setUserPlaces((prevPickedPlaces) => {
-      if (!prevPickedPlaces) {
-        prevPickedPlaces = [];
-      }
-      if (prevPickedPlaces.some((place) => place.id === selectedPlace.id)) {
-        return prevPickedPlaces;
-      }
-      return [selectedPlace, ...prevPickedPlaces];
-    });
+      const updatedPlaces = !prevPickedPlaces
+        ? [selectedPlace]
+        : prevPickedPlaces.some((place) => place.id === selectedPlace.id)
+        ? prevPickedPlaces
+        : [selectedPlace, ...prevPickedPlaces];
 
-    try {
-      await updateUserPlaces([selectedPlace, ...userPlaces]);
-    } catch (error) {
-      setUserPlaces(userPlaces);
-      setErrorUpdatingPlaces({
-        message:
-          error.message ||
-          "Failed to update the places. Please try again in a few minutes",
-      });
-    }
+      updateData(
+        "http://localhost:3000/user-places",
+        "PUT",
+        updatedPlaces,
+        "Failed to update user places."
+      );
+
+      return updatedPlaces;
+    });
   }
 
   function handleError() {
     setErrorUpdatingPlaces(null);
   }
 
-  // const handleRemovePlace = useCallback(
-  //   async function handleRemovePlace() {
-  //     setUserPlaces((prevPickedPlaces) =>
-  //       prevPickedPlaces.filter(
-  //         (place) => place.id !== selectedPlace.current.id
-  //       )
-  //     );
-
-  //     try {
-  //       await updateUserPlaces(
-  //         userPlaces.filter((place) => place.id !== selectedPlace.current.id)
-  //       );
-  //     } catch (error) {
-  //       setUserPlaces(userPlaces);
-  //       setErrorUpdatingPlaces({
-  //         message: error.message || "Failed to delete place!",
-  //       });
-  //     }
-
-  //     setModalIsOpen(false);
-  //   },
-  //   [userPlaces]
-  // );
+  const handleRemovePlace = useCallback(
+    async function handleRemovePlace() {
+      setUserPlaces((prevPickedPlaces) =>
+        prevPickedPlaces.filter(
+          (place) => place.id !== selectedPlace.current.id
+        )
+      );
+      await updateData(
+        "http://localhost:3000/user-places",
+        "PUT",
+        userPlaces.filter((place) => place.id !== selectedPlace.current.id),
+        "Failed to remove the user place"
+      );
+      setModalIsOpen(false);
+    },
+    [userPlaces, updateData]
+  );
 
   return (
     <>
@@ -125,7 +119,7 @@ function App() {
       <Modal open={modalIsOpen} onClose={handleStopRemovePlace}>
         <DeleteConfirmation
           onCancel={handleStopRemovePlace}
-          // onConfirm={handleRemovePlace}
+          onConfirm={handleRemovePlace}
         />
       </Modal>
 

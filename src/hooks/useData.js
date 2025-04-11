@@ -39,5 +39,5 @@ export function useData(
     httpRequest();
   }, [url, method, payload, errorMessage]);
 
-  return { isLoading, responseData, requestError };
+  return { isLoading, responseData, requestError, setResponseData, setRequestError };
 }
